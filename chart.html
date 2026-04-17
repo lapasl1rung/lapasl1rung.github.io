@@ -1,0 +1,87 @@
+<div class="container">
+    <h2>Dashboard Kepuasan Layanan (Realtime)</h2>
+
+    <table id="dataTable">
+        <thead>
+            <tr>
+                <th>No</th>
+                <th>Tanggal</th>
+                <th>Kepuasan</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <canvas id="chart"></canvas>
+</div>
+
+<script>
+const csvUrl = "MASUKKAN_LINK_CSV_DI_SINI";
+
+let chart;
+
+// fungsi ambil & update data
+function loadData() {
+    fetch(csvUrl + "&t=" + new Date().getTime()) // anti cache
+    .then(res => res.text())
+    .then(data => {
+
+        const rows = data.split("\n").slice(1);
+        const tbody = document.querySelector("#dataTable tbody");
+        tbody.innerHTML = "";
+
+        let kurang = 0, puas = 0, sangat = 0;
+
+        rows.forEach((row, i) => {
+            const cols = row.split(",");
+            if(cols.length < 2) return;
+
+            const tanggal = cols[0];
+            const kepuasan = cols[1].trim();
+
+            const tr = `
+                <tr>
+                    <td>${i+1}</td>
+                    <td>${tanggal}</td>
+                    <td>${kepuasan}</td>
+                </tr>
+            `;
+            tbody.innerHTML += tr;
+
+            if(kepuasan === "Kurang Puas") kurang++;
+            if(kepuasan === "Puas") puas++;
+            if(kepuasan === "Sangat Puas") sangat++;
+        });
+
+        updateChart(kurang, puas, sangat);
+    });
+}
+
+// fungsi update chart
+function updateChart(kurang, puas, sangat) {
+    const ctx = document.getElementById("chart").getContext("2d");
+
+    if(chart) {
+        chart.data.datasets[0].data = [kurang, puas, sangat];
+        chart.update();
+    } else {
+        chart = new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: ["Kurang Puas", "Puas", "Sangat Puas"],
+                datasets: [{
+                    label: "Jumlah Respon",
+                    data: [kurang, puas, sangat],
+                    backgroundColor: ["#dc3545", "#ffc107", "#28a745"]
+                }]
+            }
+        });
+    }
+}
+
+// pertama kali load
+loadData();
+
+// 🔄 AUTO REFRESH tiap 10 detik
+setInterval(loadData, 10000);
+</script>
